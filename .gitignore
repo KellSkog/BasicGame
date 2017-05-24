@@ -1,3 +1,4 @@
 /build/
-/BasicGame/nbproject/private/
-/BasicGame/build/
+**/nbproject/private/
+**/build/
+*.dll

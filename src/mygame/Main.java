@@ -22,6 +22,8 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Sphere;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -31,8 +33,50 @@ import com.jme3.scene.shape.Sphere;
  */
 public class Main extends SimpleApplication implements PhysicsCollisionListener {
     BulletAppState bulletAppState;
+
+    private void buildPyramid(float r, float pointOffset, List<BallState> pos) {
+        float sqrt3 = (float) Math.sqrt(3);
+        double height = r * Math.sqrt(8.0 / 3);//Height between layers are r * sqrt(8/3)
+        float width = r / sqrt3;
+        float layerAt = pointOffset;
+        //TipBall
+        pos.add(new BallState(new Vector3f(layerAt, 0, 0), Vector3f.ZERO));
+        
+        //Tripple
+        layerAt += height;
+        pos.add(new BallState(new Vector3f(layerAt, 2 * width, 0), Vector3f.ZERO)); //Top
+        pos.add(new BallState(new Vector3f(layerAt, -width, r), Vector3f.ZERO));
+        pos.add(new BallState(new Vector3f(layerAt, -width, -r), Vector3f.ZERO));
+        //Six
+        layerAt += height;
+        pos.add(new BallState(new Vector3f(layerAt, 4 * width, 0), Vector3f.ZERO)); //Top
+        pos.add(new BallState(new Vector3f(layerAt,  width, r), Vector3f.ZERO));
+        pos.add(new BallState(new Vector3f(layerAt,  width, -r), Vector3f.ZERO));
+        
+        pos.add(new BallState(new Vector3f(layerAt,  -2 * width, 2 * r), Vector3f.ZERO));
+        pos.add(new BallState(new Vector3f(layerAt,  - 2 *width, 0), Vector3f.ZERO));
+        pos.add(new BallState(new Vector3f(layerAt,  - 2 * width, -2 * r), Vector3f.ZERO));
+    }
+    private void buildPyramidTest(float r, float pointOffset, List<BallState> pos) {
+        pos.add(new BallState(new Vector3f(-3, 3, -3), new Vector3f(-2,2f,0)));
+        pos.add(new BallState(new Vector3f(3, 3, -3), new Vector3f(2,2,0)));
+        pos.add(new BallState(new Vector3f(-3, -3, -3), new Vector3f(-2,-2,0)));
+        pos.add(new BallState(new Vector3f(3, -3, -3), new Vector3f(2,-2,0)));
+        pos.add(new BallState(new Vector3f(-3, 3, 3), new Vector3f(-2,2,2)));
+        pos.add(new BallState(new Vector3f(3, 3, 3), new Vector3f(2,2,2)));
+        pos.add(new BallState(new Vector3f(-3, -3, 3), new Vector3f(-2,-2,2)));
+        pos.add(new BallState(new Vector3f(3, -3, 3), new Vector3f(2,-2,2)));
+    }
     public enum WallProperty {VISIBLE, INVISIBLE}
     
+    class BallState {
+        Vector3f translation;
+        Vector3f velocity;
+        BallState(Vector3f translation, Vector3f velocity) {
+            this.translation = translation;
+            this.velocity = velocity;
+        }
+    }
     public static void main(String[] args) {
         Main app = new Main();
         app.start();
@@ -46,19 +90,19 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         //assetManager provided by JMonkey somehow..
         
         
-        float radius = 1;
+        float radius = 0.5f;
         float mass = 10;
+        float pointAt = 6.0f;
+
+        List<BallState> positions = new ArrayList<>();
+        buildPyramid(radius, pointAt, positions);
+//        buildPyramidTest(radius, pointAt, positions);
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
         Material  ballMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        addBall(ballMat, new Sphere(30, 30, radius), mass, new Vector3f(-3, 3, -3), new Vector3f(-2,2f,0));
-        addBall(ballMat, new Sphere(30, 30, radius), mass, new Vector3f(3, 3, -3), new Vector3f(2,2,0));
-        addBall(ballMat, new Sphere(30, 30, radius), mass, new Vector3f(-3, -3, -3), new Vector3f(-2,-2,0));
-        addBall(ballMat, new Sphere(30, 30, radius), mass, new Vector3f(3, -3, -3), new Vector3f(2,-2,0));
-        addBall(ballMat, new Sphere(30, 30, radius), mass, new Vector3f(-3, 3, 3), new Vector3f(-2,2,2));
-        addBall(ballMat, new Sphere(30, 30, radius), mass, new Vector3f(3, 3, 3), new Vector3f(2,2,2));
-        addBall(ballMat, new Sphere(30, 30, radius), mass, new Vector3f(-3, -3, 3), new Vector3f(-2,-2,2));
-        addBall(ballMat, new Sphere(30, 30, radius), mass, new Vector3f(3, -3, 3), new Vector3f(2,-2,2));
+        for (BallState ballstate : positions) {
+            addBall(ballMat, new Sphere(30, 30, radius), mass, ballstate.translation, ballstate.velocity);
+        }
 
         // The walls, does not move (mass=0)
 //        Material wallMat = new Material(assetManager,  // Create new material and...
@@ -83,6 +127,8 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         addWall(mat, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, 5f), WallProperty.INVISIBLE); //Long wall
         
         addLight();
+        
+        cam.setLocation(new Vector3f(0f, 0f, 30f));
     }
     public void addLight() {
         DirectionalLight sun = new DirectionalLight();

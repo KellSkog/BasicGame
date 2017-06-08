@@ -1,4 +1,7 @@
 /build/
-/BasicGame/nbproject/private/
-/BasicGame/build/
+/nbproject/
+<<<<<<< HEAD
 /dist/
+=======
+>>>>>>> localErling
+*.dll

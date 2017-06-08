@@ -22,6 +22,12 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Sphere;
+import com.jme3.bullet.collision.shapes.SphereCollisionShape;
+import com.jme3.input.MouseInput;
+import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.MouseButtonTrigger;
+import com.jme3.renderer.queue.RenderQueue;
+import com.jme3.scene.shape.Cylinder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,8 +37,18 @@ import java.util.List;
  * Move your Logic into AppStates or Controls
  * @author normenhansen
  */
-public class Main extends SimpleApplication implements PhysicsCollisionListener {
+public class Main extends SimpleApplication implements PhysicsCollisionListener, ActionListener {
     BulletAppState bulletAppState;
+    public enum WallProperty {VISIBLE, INVISIBLE}
+    private Sphere bullet;
+    private Material mat;
+    private Material mat2;
+    private SphereCollisionShape bulletCollisionShape;
+    
+    public static void main(String[] args) {
+        Main app = new Main();
+        app.start();
+    }
 
     private void buildPyramid(float r, float pointOffset, List<BallState> pos) {
         float sqrt3 = (float) Math.sqrt(3);
@@ -67,7 +83,6 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         pos.add(new BallState(new Vector3f(-3, -3, 3), new Vector3f(-2,-2,2)));
         pos.add(new BallState(new Vector3f(3, -3, 3), new Vector3f(2,-2,2)));
     }
-    public enum WallProperty {VISIBLE, INVISIBLE}
     
     class BallState {
         Vector3f translation;
@@ -77,10 +92,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
             this.velocity = velocity;
         }
     }
-    public static void main(String[] args) {
-        Main app = new Main();
-        app.start();
-    }
+    
 
     @Override
     public void simpleInitApp() {
@@ -99,10 +111,15 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
 //        buildPyramidTest(radius, pointAt, positions);
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
+        
+        configureQue(mass);
+        
         Material  ballMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         for (BallState ballstate : positions) {
-            addBall(ballMat, new Sphere(30, 30, radius), mass, ballstate.translation, ballstate.velocity);
+            addBall(ballMat, new Sphere(30, 30, radius), mass, ballstate.translation, ballstate.velocity, ColorRGBA.Blue);
         }
+        Material  queMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        addBall(queMat, new Sphere(30, 30, radius), mass, new Vector3f(0, 0f, 0), Vector3f.ZERO, ColorRGBA.White);
 
         // The walls, does not move (mass=0)
 //        Material wallMat = new Material(assetManager,  // Create new material and...
@@ -121,14 +138,12 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         addWall(wallMat, new Box(0.01f, 5.0f, 5.0f), new Vector3f(-10.0f, 0.0f, 0.0f), WallProperty.VISIBLE); //Gable
         addWall(wallMat, new Box(0.01f, 5.0f, 5.0f), new Vector3f(10.0f, 0.0f, 0.0f), WallProperty.VISIBLE); //Gable
         
-        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.setColor("Color", new ColorRGBA(0f, 1f, 0f, 0f));   // Color of Unshaded
+        Material matTranparent = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        matTranparent.setColor("Color", new ColorRGBA(0f, 1f, 0f, 0f));   // Color of Unshaded
 //        mat.setTexture("ColorMap", assetManager.loadTexture("felt_green.jpg"));// In project 'assets' directory
-        addWall(mat, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, 5f), WallProperty.INVISIBLE); //Long wall
+        addWall(matTranparent, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, 5f), WallProperty.INVISIBLE); //Long wall
         
         addLight();
-        
-        cam.setLocation(new Vector3f(0f, 0f, 30f));
     }
     public void addLight() {
         DirectionalLight sun = new DirectionalLight();
@@ -141,11 +156,11 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
 //        lamp_light.setPosition(new Vector3f(lamp_geo.getLocalTranslation()));
         rootNode.addLight(sun);
     }
-    public void addBall(Material material, Mesh ball, float mass, Vector3f localTranslation, Vector3f initialVelocity) {
+    public void addBall(Material material, Mesh ball, float mass, Vector3f localTranslation, Vector3f initialVelocity, ColorRGBA color) {
             Geometry geom = new Geometry("Box", ball);
             geom.setLocalTranslation(localTranslation);
             geom.addControl(new RigidBodyControl(.001f));
-            material.setColor("Color", ColorRGBA.Blue);
+            material.setColor("Color", color);
             geom.setMaterial(material);
             RigidBodyControl bulletControl = new RigidBodyControl(mass);
             geom.addControl(bulletControl);
@@ -181,6 +196,13 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         bulletAppState.getPhysicsSpace().add(floor);  
     }
 
+    private void setupKeys() {
+        inputManager.addMapping("shoot", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+        inputManager.addMapping("shoot2", new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
+        inputManager.addListener(this, "shoot");
+        inputManager.addListener(this, "shoot2");
+    }
+    
     @Override
     public void simpleUpdate(float tpf) {
         //TODO: add update code
@@ -191,9 +213,9 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
         //TODO: add render code  Erling
     }
  
-//    private PhysicsSpace getPhysicsSpace(){
-//        return bulletAppState.getPhysicsSpace();
-//    }
+    private PhysicsSpace getPhysicsSpace(){
+        return bulletAppState.getPhysicsSpace();
+    }
 
    @Override
     public void collision(PhysicsCollisionEvent event) {
@@ -203,5 +225,68 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener 
 //                RigidBodyControl rbc = event.getNodeA().get;
             }
         }
+    }
+
+@Override
+    public void onAction(String name, boolean isPressed, float tpf) {
+       if (name.equals("shoot") && !isPressed) {
+            Geometry bulletg = new Geometry("bullet", bullet);
+            bulletg.setMaterial(mat);
+            bulletg.setName("bullet");
+            bulletg.setLocalTranslation(cam.getLocation());
+            bulletg.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+            bulletg.addControl(new RigidBodyControl(bulletCollisionShape, 10));
+            bulletg.getControl(RigidBodyControl.class).setCcdMotionThreshold(0.1f);
+            bulletg.getControl(RigidBodyControl.class).setLinearVelocity(cam.getDirection().mult(40));
+            rootNode.attachChild(bulletg);
+            getPhysicsSpace().add(bulletg);
+        } else if (name.equals("shoot2") && !isPressed) {
+            Geometry bulletg = new Geometry("bullet", bullet);
+            bulletg.setMaterial(mat2);
+            bulletg.setName("bullet");
+            bulletg.setLocalTranslation(cam.getLocation());
+            bulletg.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+            bulletg.addControl(new RigidBodyControl(bulletCollisionShape, 10));
+            bulletg.getControl(RigidBodyControl.class).setLinearVelocity(cam.getDirection().mult(40));
+            rootNode.attachChild(bulletg);
+            getPhysicsSpace().add(bulletg);
+        }
+   }
+       private void configureQue(float mass) {
+
+        cam.setLocation(new Vector3f(10f, 0f, 40f));
+        flyCam.setMoveSpeed(25);
+        setupKeys();
+        mat = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+        mat.getAdditionalRenderState().setWireframe(true);
+        mat.setColor("Color", ColorRGBA.Green);
+
+        mat2 = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
+        mat2.getAdditionalRenderState().setWireframe(true);
+        mat2.setColor("Color", ColorRGBA.Red);
+        bullet = new Sphere(32, 32, 0.4f, true, false);
+        bullet.setTextureMode(Sphere.TextureMode.Projected);
+        bulletCollisionShape = new SphereCollisionShape(0.1f);
+        Cylinder que;
+        que = new Cylinder(5,10,0.3f,20f, true);
+        Geometry queGeom = new Geometry("Box", que);
+           queGeom.setLocalTranslation(new Vector3f(0f,0f,20f));
+            queGeom.addControl(new RigidBodyControl(.001f));
+            mat.setColor("Color", ColorRGBA.Green);
+            queGeom.setMaterial(mat);
+//            RigidBodyControl bulletControl = new RigidBodyControl(mass);
+//            queGeom.addControl(bulletControl);
+//            bulletControl.setSleepingThresholds(0f,0f);
+             //Set initial test velocity
+//            bulletControl.setLinearVelocity(new Vector3f(0,0,0));
+//            bulletControl.setRestitution(1);
+            rootNode.attachChild(queGeom);
+            // activate physics
+            PhysicsSpace space = bulletAppState.getPhysicsSpace();
+//            space.add(bulletControl);
+//            bulletControl.setGravity(new Vector3f(0,0,0));
+                  // add ourselves as collision listener
+            space.addCollisionListener(this);
+
     }
 }

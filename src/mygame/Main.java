@@ -113,13 +113,18 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         stateManager.attach(bulletAppState);
         
         configureQue(mass);
-        
+        PhysicsSpace space = bulletAppState.getPhysicsSpace();
+        space.setGravity(Vector3f.ZERO);
+
+        Geometry geom;
         Material  ballMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         for (BallState ballstate : positions) {
-            addBall(ballMat, new Sphere(30, 30, radius), mass, ballstate.translation, ballstate.velocity, ColorRGBA.Blue);
+            geom = addBall(ballMat, new Sphere(30, 30, radius), mass, ballstate.translation, ballstate.velocity, ColorRGBA.Blue);
+            space.add(geom);
         }
         Material  queMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        addBall(queMat, new Sphere(30, 30, radius), mass, new Vector3f(0, 0f, 0), Vector3f.ZERO, ColorRGBA.White);
+        geom = addBall(queMat, new Sphere(30, 30, radius), mass, new Vector3f(0, 0f, 0), Vector3f.ZERO, ColorRGBA.White);
+        space.add(geom);
 
         // The walls, does not move (mass=0)
 //        Material wallMat = new Material(assetManager,  // Create new material and...
@@ -143,6 +148,8 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 //        mat.setTexture("ColorMap", assetManager.loadTexture("felt_green.jpg"));// In project 'assets' directory
         addWall(matTranparent, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, 5f), WallProperty.INVISIBLE); //Long wall
         
+        space.addCollisionListener(this);
+        
         addLight();
     }
     public void addLight() {
@@ -156,26 +163,21 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 //        lamp_light.setPosition(new Vector3f(lamp_geo.getLocalTranslation()));
         rootNode.addLight(sun);
     }
-    public void addBall(Material material, Mesh ball, float mass, Vector3f localTranslation, Vector3f initialVelocity, ColorRGBA color) {
-            Geometry geom = new Geometry("Box", ball);
-            geom.setLocalTranslation(localTranslation);
-            geom.addControl(new RigidBodyControl(.001f));
-            material.setColor("Color", color);
-            geom.setMaterial(material);
-            RigidBodyControl bulletControl = new RigidBodyControl(mass);
-            geom.addControl(bulletControl);
-            bulletControl.setSleepingThresholds(0f,0f);
-             
-            bulletControl.setLinearVelocity(initialVelocity); //Set initial test velocity
-            bulletControl.setRestitution(1);
-//            bulletControl.setFriction(50f); //Has no effect!
-            rootNode.attachChild(geom);
-            // activate physics
-            PhysicsSpace space = bulletAppState.getPhysicsSpace();
-            space.add(bulletControl);
-            bulletControl.setGravity(new Vector3f(0,0,0));
-                  // add ourselves as collision listener
-            space.addCollisionListener(this);
+    public Geometry addBall(Material material, Mesh ball, float mass, Vector3f localTranslation, Vector3f initialVelocity, ColorRGBA color) {
+        Geometry geom = new Geometry("Box", ball);
+        geom.setLocalTranslation(localTranslation);
+        material.setColor("Color", color);
+        geom.setMaterial(material);
+        
+        RigidBodyControl bulletControl = new RigidBodyControl(mass);
+        geom.addControl(bulletControl);
+        bulletControl.setSleepingThresholds(0f,0f);
+        bulletControl.setLinearVelocity(initialVelocity); //Set initial test velocity
+        bulletControl.setRestitution(1);
+//        bulletControl.setFriction(50f); //Has no effect!
+        rootNode.attachChild(geom);
+
+        return geom;
     }
     public void addWall(Material material, Box floorBox, Vector3f localTranslation, WallProperty visibility) {
         MeshCollisionShape meshCollisionShape = new MeshCollisionShape(floorBox);
@@ -246,7 +248,8 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
             bulletg.setName("bullet");
             bulletg.setLocalTranslation(cam.getLocation());
             bulletg.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
-            bulletg.addControl(new RigidBodyControl(bulletCollisionShape, 10));
+            bulletg.addControl(new RigidBodyControl(bulletCollisionShape, 10
+            ));
             bulletg.getControl(RigidBodyControl.class).setLinearVelocity(cam.getDirection().mult(40));
             rootNode.attachChild(bulletg);
             getPhysicsSpace().add(bulletg);

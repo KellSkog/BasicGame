@@ -23,10 +23,15 @@ import com.jme3.scene.Mesh;
 import com.jme3.scene.shape.Box;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.bullet.collision.shapes.SphereCollisionShape;
+import com.jme3.input.KeyInput;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.ActionListener;
+import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseButtonTrigger;
+import com.jme3.material.RenderState;
 import com.jme3.renderer.queue.RenderQueue;
+import com.jme3.scene.Spatial;
+import com.jme3.scene.Spatial.CullHint;
 import com.jme3.scene.shape.Cylinder;
 import java.util.ArrayList;
 import java.util.List;
@@ -72,16 +77,6 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         pos.add(new BallState(new Vector3f(layerAt,  -2 * width, 2 * r), Vector3f.ZERO));
         pos.add(new BallState(new Vector3f(layerAt,  - 2 *width, 0), Vector3f.ZERO));
         pos.add(new BallState(new Vector3f(layerAt,  - 2 * width, -2 * r), Vector3f.ZERO));
-    }
-    private void buildPyramidTest(float r, float pointOffset, List<BallState> pos) {
-        pos.add(new BallState(new Vector3f(-3, 3, -3), new Vector3f(-2,2f,0)));
-        pos.add(new BallState(new Vector3f(3, 3, -3), new Vector3f(2,2,0)));
-        pos.add(new BallState(new Vector3f(-3, -3, -3), new Vector3f(-2,-2,0)));
-        pos.add(new BallState(new Vector3f(3, -3, -3), new Vector3f(2,-2,0)));
-        pos.add(new BallState(new Vector3f(-3, 3, 3), new Vector3f(-2,2,2)));
-        pos.add(new BallState(new Vector3f(3, 3, 3), new Vector3f(2,2,2)));
-        pos.add(new BallState(new Vector3f(-3, -3, 3), new Vector3f(-2,-2,2)));
-        pos.add(new BallState(new Vector3f(3, -3, 3), new Vector3f(2,-2,2)));
     }
     
     class BallState {
@@ -137,6 +132,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         Material wallMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         wallMat.setColor("Color", ColorRGBA.Green);   // Color of Unshaded
         wallMat.setTexture("ColorMap", assetManager.loadTexture("felt_green.jpg"));// In project 'assets' directory
+        wallMat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Back);
         addWall(wallMat, new Box(10.0f, 0.01f, 5.0f), new Vector3f(0, -5f, 0), WallProperty.VISIBLE); //Floor
         addWall(wallMat, new Box(10.0f, 0.01f, 5.0f), new Vector3f(0, 5f, 0), WallProperty.VISIBLE); //Ceiling
         addWall(wallMat, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, -5f), WallProperty.VISIBLE); //Long wall
@@ -185,10 +181,10 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         rigidBodyControl.setKinematic(false);
         rigidBodyControl.setRestitution(1);
 //        floorBox.scaleTextureCoordinates(new Vector2f(3, 6));
-        
+        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
         Geometry floor = new Geometry("floor", floorBox);
         if (visibility == WallProperty.INVISIBLE) {
-            material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+            
             floor.setQueueBucket(Bucket.Transparent);
         }
         floor.setMaterial(material);
@@ -203,6 +199,15 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         inputManager.addMapping("shoot2", new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
         inputManager.addListener(this, "shoot");
         inputManager.addListener(this, "shoot2");
+        
+        inputManager.addMapping("camRight", new KeyTrigger(KeyInput.KEY_D));
+        inputManager.addMapping("camLeft", new KeyTrigger(KeyInput.KEY_A));
+        inputManager.addMapping("camUp", new KeyTrigger(KeyInput.KEY_Q));
+        inputManager.addMapping("camDown", new KeyTrigger(KeyInput.KEY_Z));
+        inputManager.addListener(this, "camRight");
+        inputManager.addListener(this, "camLeft");
+        inputManager.addListener(this, "camUp");
+        inputManager.addListener(this, "camDown");
     }
     
     @Override
@@ -232,30 +237,48 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 @Override
     public void onAction(String name, boolean isPressed, float tpf) {
        if (name.equals("shoot") && !isPressed) {
-            Geometry bulletg = new Geometry("bullet", bullet);
-            bulletg.setMaterial(mat);
-            bulletg.setName("bullet");
-            bulletg.setLocalTranslation(cam.getLocation());
-            bulletg.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
-            bulletg.addControl(new RigidBodyControl(bulletCollisionShape, 10));
-            bulletg.getControl(RigidBodyControl.class).setCcdMotionThreshold(0.1f);
-            bulletg.getControl(RigidBodyControl.class).setLinearVelocity(cam.getDirection().mult(40));
-            rootNode.attachChild(bulletg);
-            getPhysicsSpace().add(bulletg);
-        } else if (name.equals("shoot2") && !isPressed) {
-            Geometry bulletg = new Geometry("bullet", bullet);
-            bulletg.setMaterial(mat2);
-            bulletg.setName("bullet");
-            bulletg.setLocalTranslation(cam.getLocation());
-            bulletg.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
-            bulletg.addControl(new RigidBodyControl(bulletCollisionShape, 10
-            ));
-            bulletg.getControl(RigidBodyControl.class).setLinearVelocity(cam.getDirection().mult(40));
-            rootNode.attachChild(bulletg);
-            getPhysicsSpace().add(bulletg);
+           perform(new Geometry("bullet", bullet), mat);
+        } else if (name.equals("shoot2") && isPressed) {
+           perform(new Geometry("bullet", bullet), mat2);
+        } else if (name.equals("camRight") && isPressed) {
+
+                    
+        } else if (name.equals("camLeft") && isPressed) {
+
+                    
+        } else if (name.equals("camUp") && isPressed) {
+            List<Spatial> children = rootNode.getChildren();
+            for (Spatial child : children) {
+                if (child.getName().equals("floor")) {
+                    if (child.getCullHint() == CullHint.Never) {
+                        child.setCullHint(CullHint.Always);
+                    } else {
+                        child.setCullHint(CullHint.Never);
+                    }
+                }
+            }
+                    
+        } else if (name.equals("camDown") && isPressed) {
+
+                    
         }
    }
-       private void configureQue(float mass) {
+    private void print(String s) {
+        System.out.println(s);
+    }
+    private void perform(Geometry geom, Material material) {
+        Vector3f camLoc = cam.getLocation();
+        Vector3f camDir = cam.getDirection();
+        geom.setMaterial(material);
+        geom.setName("bullet");
+        geom.setLocalTranslation(camLoc);
+        geom.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
+        geom.addControl(new RigidBodyControl(bulletCollisionShape, 10));
+        geom.getControl(RigidBodyControl.class).setLinearVelocity(camDir.mult(40));
+        rootNode.attachChild(geom);
+        getPhysicsSpace().add(geom);
+    }
+    private void configureQue(float mass) {
 
         cam.setLocation(new Vector3f(10f, 0f, 40f));
         flyCam.setMoveSpeed(25);

@@ -13,11 +13,9 @@ import com.jme3.bullet.collision.shapes.MeshCollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
-import com.jme3.material.RenderState.BlendMode;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
-import com.jme3.renderer.queue.RenderQueue.Bucket;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.shape.Box;
@@ -29,9 +27,11 @@ import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.material.RenderState;
+import com.jme3.renderer.ViewPort;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.Spatial.CullHint;
+import com.jme3.scene.control.AbstractControl;
 import com.jme3.scene.shape.Cylinder;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,40 +53,32 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
     public static void main(String[] args) {
         Main app = new Main();
         app.start();
-    }
+    }  
 
-    private void buildPyramid(float r, float pointOffset, List<BallState> pos) {
+    private void buildPyramid(float r, float pointOffset, List<Vector3f> pos) {
         float sqrt3 = (float) Math.sqrt(3);
         double height = r * Math.sqrt(8.0 / 3);//Height between layers are r * sqrt(8/3)
         float width = r / sqrt3;
         float layerAt = pointOffset;
         //TipBall
-        pos.add(new BallState(new Vector3f(layerAt, 0, 0), Vector3f.ZERO));
+        pos.add(new Vector3f(layerAt, 0, 0));
         
         //Tripple
         layerAt += height;
-        pos.add(new BallState(new Vector3f(layerAt, 2 * width, 0), Vector3f.ZERO)); //Top
-        pos.add(new BallState(new Vector3f(layerAt, -width, r), Vector3f.ZERO));
-        pos.add(new BallState(new Vector3f(layerAt, -width, -r), Vector3f.ZERO));
+        pos.add(new Vector3f(layerAt, 2 * width, 0)); //Top
+        pos.add(new Vector3f(layerAt, -width, r));
+        pos.add(new Vector3f(layerAt, -width, -r));
         //Six
         layerAt += height;
-        pos.add(new BallState(new Vector3f(layerAt, 4 * width, 0), Vector3f.ZERO)); //Top
-        pos.add(new BallState(new Vector3f(layerAt,  width, r), Vector3f.ZERO));
-        pos.add(new BallState(new Vector3f(layerAt,  width, -r), Vector3f.ZERO));
+        pos.add(new Vector3f(layerAt, 4 * width, 0)); //Top
+        pos.add(new Vector3f(layerAt,  width, r));
+        pos.add(new Vector3f(layerAt,  width, -r));
         
-        pos.add(new BallState(new Vector3f(layerAt,  -2 * width, 2 * r), Vector3f.ZERO));
-        pos.add(new BallState(new Vector3f(layerAt,  - 2 *width, 0), Vector3f.ZERO));
-        pos.add(new BallState(new Vector3f(layerAt,  - 2 * width, -2 * r), Vector3f.ZERO));
+        pos.add(new Vector3f(layerAt,  -2 * width, 2 * r));
+        pos.add(new Vector3f(layerAt,  - 2 *width, 0));
+        pos.add(new Vector3f(layerAt,  - 2 * width, -2 * r));
     }
     
-    class BallState {
-        Vector3f translation;
-        Vector3f velocity;
-        BallState(Vector3f translation, Vector3f velocity) {
-            this.translation = translation;
-            this.velocity = velocity;
-        }
-    }
     
 
     @Override
@@ -101,9 +93,8 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         float mass = 10;
         float pointAt = 6.0f;
 
-        List<BallState> positions = new ArrayList<>();
+        List<Vector3f> positions = new ArrayList<>();
         buildPyramid(radius, pointAt, positions);
-//        buildPyramidTest(radius, pointAt, positions);
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
         
@@ -113,12 +104,12 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 
         Geometry geom;
         Material  ballMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        for (BallState ballstate : positions) {
-            geom = addBall(ballMat, new Sphere(30, 30, radius), mass, ballstate.translation, ballstate.velocity, ColorRGBA.Blue);
+        for (Vector3f ballstate : positions) {
+            geom = addBall(ballMat, new Sphere(30, 30, radius), mass, ballstate, ColorRGBA.Blue);
             space.add(geom);
         }
         Material  queMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        geom = addBall(queMat, new Sphere(30, 30, radius), mass, new Vector3f(0, 0f, 0), Vector3f.ZERO, ColorRGBA.White);
+        geom = addBall(queMat, new Sphere(30, 30, radius), mass, new Vector3f(0, 0f, 0), ColorRGBA.White);
         space.add(geom);
 
         // The walls, does not move (mass=0)
@@ -133,16 +124,14 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         wallMat.setColor("Color", ColorRGBA.Green);   // Color of Unshaded
         wallMat.setTexture("ColorMap", assetManager.loadTexture("felt_green.jpg"));// In project 'assets' directory
         wallMat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Back);
-        addWall(wallMat, new Box(10.0f, 0.01f, 5.0f), new Vector3f(0, -5f, 0), WallProperty.VISIBLE); //Floor
-        addWall(wallMat, new Box(10.0f, 0.01f, 5.0f), new Vector3f(0, 5f, 0), WallProperty.VISIBLE); //Ceiling
-        addWall(wallMat, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, -5f), WallProperty.VISIBLE); //Long wall
-        addWall(wallMat, new Box(0.01f, 5.0f, 5.0f), new Vector3f(-10.0f, 0.0f, 0.0f), WallProperty.VISIBLE); //Gable
-        addWall(wallMat, new Box(0.01f, 5.0f, 5.0f), new Vector3f(10.0f, 0.0f, 0.0f), WallProperty.VISIBLE); //Gable
+        addWall(wallMat, new Box(10.0f, 0.01f, 5.0f), new Vector3f(0, -5f, 0), new Vector3f(0, -1f, 0), CullHint.Never); //Floor
+        addWall(wallMat, new Box(10.0f, 0.01f, 5.0f), new Vector3f(0, 5f, 0), new Vector3f(0, 1f, 0), CullHint.Never); //Ceiling
+        addWall(wallMat, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, -5f), new Vector3f(0, 0f, -1f), CullHint.Never); //Long wall
+        addWall(wallMat, new Box(0.01f, 5.0f, 5.0f), new Vector3f(-10.0f, 0.0f, 0.0f), new Vector3f(-1f, 0f, 0), CullHint.Never); //Gable
+        addWall(wallMat, new Box(0.01f, 5.0f, 5.0f), new Vector3f(10.0f, 0.0f, 0.0f), new Vector3f(1f, 0f, 0), CullHint.Never); //Gable
         
-        Material matTranparent = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        matTranparent.setColor("Color", new ColorRGBA(0f, 1f, 0f, 0f));   // Color of Unshaded
-//        mat.setTexture("ColorMap", assetManager.loadTexture("felt_green.jpg"));// In project 'assets' directory
-        addWall(matTranparent, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, 5f), WallProperty.INVISIBLE); //Long wall
+
+        addWall(wallMat, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, 5f), new Vector3f(0, 0f, 1f), CullHint.Always); //Long wall
         
         space.addCollisionListener(this);
         
@@ -159,7 +148,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 //        lamp_light.setPosition(new Vector3f(lamp_geo.getLocalTranslation()));
         rootNode.addLight(sun);
     }
-    public Geometry addBall(Material material, Mesh ball, float mass, Vector3f localTranslation, Vector3f initialVelocity, ColorRGBA color) {
+    public Geometry addBall(Material material, Mesh ball, float mass, Vector3f localTranslation, ColorRGBA color) {
         Geometry geom = new Geometry("Box", ball);
         geom.setLocalTranslation(localTranslation);
         material.setColor("Color", color);
@@ -168,28 +157,30 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         RigidBodyControl bulletControl = new RigidBodyControl(mass);
         geom.addControl(bulletControl);
         bulletControl.setSleepingThresholds(0f,0f);
-        bulletControl.setLinearVelocity(initialVelocity); //Set initial test velocity
+        bulletControl.setLinearVelocity(Vector3f.ZERO); //Set initial test velocity
         bulletControl.setRestitution(1);
 //        bulletControl.setFriction(50f); //Has no effect!
         rootNode.attachChild(geom);
 
         return geom;
     }
-    public void addWall(Material material, Box floorBox, Vector3f localTranslation, WallProperty visibility) {
+    public void addWall(Material material, Box floorBox, Vector3f localTranslation, Vector3f normal, CullHint visible) {
         MeshCollisionShape meshCollisionShape = new MeshCollisionShape(floorBox);
         RigidBodyControl rigidBodyControl = new RigidBodyControl(meshCollisionShape, 0f);
         rigidBodyControl.setKinematic(false);
         rigidBodyControl.setRestitution(1);
-//        floorBox.scaleTextureCoordinates(new Vector2f(3, 6));
-        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+
+//        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
         Geometry floor = new Geometry("floor", floorBox);
-        if (visibility == WallProperty.INVISIBLE) {
-            
-            floor.setQueueBucket(Bucket.Transparent);
-        }
+//        if (visibility == WallProperty.INVISIBLE) {
+//            
+//            floor.setQueueBucket(Bucket.Transparent);
+//        }
         floor.setMaterial(material);
         floor.setLocalTranslation(localTranslation);
         floor.addControl(rigidBodyControl);
+        floor.setCullHint(visible);
+        floor.setUserData("Normal", normal);
         rootNode.attachChild(floor);
         bulletAppState.getPhysicsSpace().add(floor);  
     }

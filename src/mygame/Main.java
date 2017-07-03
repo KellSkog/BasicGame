@@ -27,8 +27,12 @@ import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.material.RenderState;
+import com.jme3.math.FastMath;
+import com.jme3.math.Quaternion;
+import com.jme3.renderer.Camera;
 import com.jme3.renderer.ViewPort;
 import com.jme3.renderer.queue.RenderQueue;
+import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.Spatial.CullHint;
 import com.jme3.scene.control.AbstractControl;
@@ -49,7 +53,57 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
     private Material mat;
     private Material mat2;
     private SphereCollisionShape bulletCollisionShape;
-    
+    Node queNode = new Node();
+    Cylinder que;
+    Geometry queGeom;
+//    Camera cam2 = new Camera(100,100);
+    enum cameraId {queCam,globalCam}
+    CameraManager cm;
+   
+    private class CameraState {
+        Quaternion camRotation;
+        Vector3f camLocation;
+        
+        
+        private void setCamera(Quaternion rotation, Vector3f location){
+            camRotation = rotation;
+            camLocation = location;
+        }
+//        private CameraState getCamera(){
+//            return this;
+//        }
+         private Quaternion getCamRotation(){
+             return camRotation;
+        }
+          private Vector3f getCamLocation(){
+            return camLocation;
+        }
+        
+    }
+    private class CameraManager {
+            
+        CameraState[] cameras;
+        int currentCamera;
+            
+        CameraManager(CameraState[] cameras){
+                
+            this.cameras = cameras;
+            currentCamera = 0;
+            cam.setRotation(cameras[currentCamera].getCamRotation());
+            cam.setLocation(cameras[currentCamera].getCamLocation());
+//            setCameraState(currentCamera);
+        }
+        
+        void setCameraState(int newActiveCamera){
+//            cameras[currentCamera].setCamera(cam.getRotation(),cam.getLocation());
+            cam.setRotation(cameras[newActiveCamera].getCamRotation());
+            cam.setLocation(cameras[newActiveCamera].getCamLocation());
+            currentCamera = newActiveCamera;
+        }
+            
+    }
+
+
     public static void main(String[] args) {
         Main app = new Main();
         app.start();
@@ -99,6 +153,17 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         stateManager.attach(bulletAppState);
         
         configureQue(mass);
+        Quaternion test = new Quaternion(0f,0,0f,1).add(new Quaternion(0f,0,0f,0));
+        test = test.opposite(test);
+        CameraState[] cameras = new CameraState[2];
+        cameras[0] = new CameraState();
+        cameras[0].setCamera(test, new Vector3f(10f, 0f, 40f));
+        test = queNode.getWorldRotation();
+        cam.setLocation(queGeom.getWorldTranslation());
+        test.opposite(test);
+        cameras[1] = new CameraState();
+        cameras[1].setCamera(test, queGeom.getWorldTranslation());
+        cm = new CameraManager(cameras);
         PhysicsSpace space = bulletAppState.getPhysicsSpace();
         space.setGravity(Vector3f.ZERO);
 
@@ -191,14 +256,18 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         inputManager.addListener(this, "shoot");
         inputManager.addListener(this, "shoot2");
         
-        inputManager.addMapping("camRight", new KeyTrigger(KeyInput.KEY_D));
-        inputManager.addMapping("camLeft", new KeyTrigger(KeyInput.KEY_A));
-        inputManager.addMapping("camUp", new KeyTrigger(KeyInput.KEY_Q));
-        inputManager.addMapping("camDown", new KeyTrigger(KeyInput.KEY_Z));
-        inputManager.addListener(this, "camRight");
-        inputManager.addListener(this, "camLeft");
-        inputManager.addListener(this, "camUp");
-        inputManager.addListener(this, "camDown");
+        inputManager.addMapping("queRight", new KeyTrigger(KeyInput.KEY_J));
+        inputManager.addMapping("queLeft", new KeyTrigger(KeyInput.KEY_H));
+        inputManager.addMapping("queUp", new KeyTrigger(KeyInput.KEY_U));
+        inputManager.addMapping("queDown", new KeyTrigger(KeyInput.KEY_N));
+        inputManager.addMapping("camGlobal", new KeyTrigger(KeyInput.KEY_B));
+        inputManager.addMapping("camQue", new KeyTrigger(KeyInput.KEY_M));
+        inputManager.addListener(this, "queRight");
+        inputManager.addListener(this, "queLeft");
+        inputManager.addListener(this, "queUp");
+        inputManager.addListener(this, "queDown");
+        inputManager.addListener(this, "camGlobal");
+        inputManager.addListener(this, "camQue");
     }
     
     @Override
@@ -231,27 +300,50 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
            perform(new Geometry("bullet", bullet), mat);
         } else if (name.equals("shoot2") && isPressed) {
            perform(new Geometry("bullet", bullet), mat2);
-        } else if (name.equals("camRight") && isPressed) {
+        } else if (name.equals("queRight") && isPressed) {
+            queNode.rotate(queNode.getWorldRotation().fromAngleAxis(FastMath.DEG_TO_RAD*20, new Vector3f(0,1,0)));
+                    
+        } else if (name.equals("queLeft") && isPressed) {
+
+            queNode.rotate(queNode.getWorldRotation().fromAngleAxis(-FastMath.DEG_TO_RAD*20, new Vector3f(0,1,0)));
+                    
+        } else if (name.equals("queUp") && isPressed) {
+            queNode.rotate(queNode.getWorldRotation().fromAngleAxis(-FastMath.DEG_TO_RAD*20, new Vector3f(1,0,0)));
+           List<Spatial> children = rootNode.getChildren();
+//            for (Spatial child : children) {
+//                if (child.getName().equals("floor")) {
+//                    if (child.getCullHint() == CullHint.Never) {
+//                        child.setCullHint(CullHint.Always);
+//                    } else {
+//                        child.setCullHint(CullHint.Never);
+//                    }
+//                }
+//            }
+                    
+        } else if (name.equals("queDown") && isPressed) {
+            queNode.rotate(queNode.getWorldRotation().fromAngleAxis(FastMath.DEG_TO_RAD*20, new Vector3f(1,0,0)));
 
                     
-        } else if (name.equals("camLeft") && isPressed) {
-
+        } else if (name.equals("camGlobal") && isPressed) {
+            
+          cm.setCameraState(0);
+//        cam.setLocation(new Vector3f(10f, 0f, 40f));
+//        Quaternion test = new Quaternion(0f,0,0f,1).add(new Quaternion(0f,0,0f,0));
+//        test.opposite(test);
+//        cam.setRotation(test);
+//        float w = test.getW();
+//        float x = test.getX();
+//        float y = test.getY();
+//        float z = test.getZ();
+//        
+//        System.out.println(w + " " + x + " " + y + " " + z);
                     
-        } else if (name.equals("camUp") && isPressed) {
-            List<Spatial> children = rootNode.getChildren();
-            for (Spatial child : children) {
-                if (child.getName().equals("floor")) {
-                    if (child.getCullHint() == CullHint.Never) {
-                        child.setCullHint(CullHint.Always);
-                    } else {
-                        child.setCullHint(CullHint.Never);
-                    }
-                }
-            }
-                    
-        } else if (name.equals("camDown") && isPressed) {
-
-                    
+        } else if (name.equals("camQue") && isPressed) {
+           cm.setCameraState(1);
+//           Quaternion test = queNode.getWorldRotation();
+//            cam.setLocation(queGeom.getWorldTranslation());
+//            test.opposite(test);
+//            cam.setRotation(test);
         }
    }
     private void print(String s) {
@@ -271,8 +363,10 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
     }
     private void configureQue(float mass) {
 
-        cam.setLocation(new Vector3f(10f, 0f, 40f));
+//        cam.setLocation(new Vector3f(10f, 0f, 40f));
         flyCam.setMoveSpeed(25);
+        cam.setViewPort( 0.0f , 1.0f   ,   0.0f , 1.0f );
+        Quaternion test = queNode.getWorldRotation();
         setupKeys();
         mat = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
         mat.getAdditionalRenderState().setWireframe(true);
@@ -284,11 +378,11 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         bullet = new Sphere(32, 32, 0.4f, true, false);
         bullet.setTextureMode(Sphere.TextureMode.Projected);
         bulletCollisionShape = new SphereCollisionShape(0.1f);
-        Cylinder que;
+        
         que = new Cylinder(5,10,0.3f,20f, true);
-        Geometry queGeom = new Geometry("Box", que);
-           queGeom.setLocalTranslation(new Vector3f(0f,0f,20f));
-            queGeom.addControl(new RigidBodyControl(.001f));
+        queGeom = new Geometry("Box", que);
+        queGeom.setLocalTranslation(new Vector3f(0f,0f,20f));
+        queGeom.addControl(new RigidBodyControl(.001f));
             mat.setColor("Color", ColorRGBA.Green);
             queGeom.setMaterial(mat);
 //            RigidBodyControl bulletControl = new RigidBodyControl(mass);
@@ -297,13 +391,25 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
              //Set initial test velocity
 //            bulletControl.setLinearVelocity(new Vector3f(0,0,0));
 //            bulletControl.setRestitution(1);
-            rootNode.attachChild(queGeom);
+            queNode.attachChild(queGeom);
+            rootNode.attachChild(queNode);
             // activate physics
             PhysicsSpace space = bulletAppState.getPhysicsSpace();
+//            cam2 = cam.clone();
+//        ViewPort view_2 = renderManager.createMainView("View of camera #n", cam2);
+//        view_2.setEnabled(true);
+//        view_2.attachScene(rootNode);
+//        view_2.setBackgroundColor(ColorRGBA.Black);
+//        cam2.setLocation(queGeom.getWorldTranslation());
+//        test.opposite(test);
+//        cam2.setRotation(test);
+//        cam2.setViewPort( 0.5f , 1.0f   ,   0.0f , 0.5f );
+        
 //            space.add(bulletControl);
 //            bulletControl.setGravity(new Vector3f(0,0,0));
                   // add ourselves as collision listener
             space.addCollisionListener(this);
 
     }
+    
 }

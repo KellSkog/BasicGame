@@ -34,7 +34,10 @@ import com.jme3.scene.Spatial.CullHint;
 import com.jme3.scene.control.AbstractControl;
 import com.jme3.scene.shape.Cylinder;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 
 /**
@@ -123,18 +126,15 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         Material wallMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         wallMat.setColor("Color", ColorRGBA.Green);   // Color of Unshaded
         wallMat.setTexture("ColorMap", assetManager.loadTexture("felt_green.jpg"));// In project 'assets' directory
-        wallMat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Back);
+        wallMat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Front);
         addWall(wallMat, new Box(10.0f, 0.01f, 5.0f), new Vector3f(0, -5f, 0), new Vector3f(0, -1f, 0), CullHint.Never); //Floor
         addWall(wallMat, new Box(10.0f, 0.01f, 5.0f), new Vector3f(0, 5f, 0), new Vector3f(0, 1f, 0), CullHint.Never); //Ceiling
         addWall(wallMat, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, -5f), new Vector3f(0, 0f, -1f), CullHint.Never); //Long wall
         addWall(wallMat, new Box(0.01f, 5.0f, 5.0f), new Vector3f(-10.0f, 0.0f, 0.0f), new Vector3f(-1f, 0f, 0), CullHint.Never); //Gable
         addWall(wallMat, new Box(0.01f, 5.0f, 5.0f), new Vector3f(10.0f, 0.0f, 0.0f), new Vector3f(1f, 0f, 0), CullHint.Never); //Gable
-        
-
         addWall(wallMat, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, 5f), new Vector3f(0, 0f, 1f), CullHint.Always); //Long wall
         
         space.addCollisionListener(this);
-        
         addLight();
     }
     public void addLight() {
@@ -170,12 +170,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         rigidBodyControl.setKinematic(false);
         rigidBodyControl.setRestitution(1);
 
-//        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
         Geometry floor = new Geometry("floor", floorBox);
-//        if (visibility == WallProperty.INVISIBLE) {
-//            
-//            floor.setQueueBucket(Bucket.Transparent);
-//        }
         floor.setMaterial(material);
         floor.setLocalTranslation(localTranslation);
         floor.addControl(rigidBodyControl);
@@ -227,36 +222,44 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 
 @Override
     public void onAction(String name, boolean isPressed, float tpf) {
+        boolean camMoved = false;
        if (name.equals("shoot") && !isPressed) {
            perform(new Geometry("bullet", bullet), mat);
         } else if (name.equals("shoot2") && isPressed) {
            perform(new Geometry("bullet", bullet), mat2);
         } else if (name.equals("camRight") && isPressed) {
-
-                    
+            camMoved = true;
         } else if (name.equals("camLeft") && isPressed) {
-
-                    
+            camMoved = true;
         } else if (name.equals("camUp") && isPressed) {
-            List<Spatial> children = rootNode.getChildren();
-            for (Spatial child : children) {
-                if (child.getName().equals("floor")) {
-                    if (child.getCullHint() == CullHint.Never) {
-                        child.setCullHint(CullHint.Always);
-                    } else {
-                        child.setCullHint(CullHint.Never);
-                    }
-                }
-            }
-                    
+            camMoved = true;      
         } else if (name.equals("camDown") && isPressed) {
-
-                    
+            camMoved = true;
         }
+       if (camMoved) {
+           setWallVisibility();
+       }
    }
-    private void print(String s) {
-        System.out.println(s);
+
+    private void setVisibility(Spatial s) {
+        Vector3f normal = ((Vector3f) (s.getUserData("Normal")));
+        Vector3f cameraPos = cam.getLocation();
+                Vector3f sum = normal.subtract(cameraPos);
+                if (sum.lengthSquared() > cameraPos.lengthSquared())
+                    s.setCullHint(CullHint.Never);
+                else 
+                    s.setCullHint(CullHint.Always);
     }
+    private void setWallVisibility() {
+//        rootNode.getChildren().stream()
+//                .filter(child -> child.getName().equals("floor"));
+        for (Spatial child : rootNode.getChildren()) {
+            if (child.getName().equals("floor")) {
+                setVisibility(child);
+            }
+        }
+    }
+
     private void perform(Geometry geom, Material material) {
         Vector3f camLoc = cam.getLocation();
         Vector3f camDir = cam.getDirection();

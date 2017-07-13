@@ -1,7 +1,6 @@
 /*
  * 2 Balls
-*/
-
+ */
 package mygame;
 
 import com.jme3.app.SimpleApplication;
@@ -29,96 +28,109 @@ import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.material.RenderState;
 import com.jme3.math.FastMath;
 import com.jme3.math.Quaternion;
-import com.jme3.renderer.Camera;
-import com.jme3.renderer.ViewPort;
+//import com.jme3.renderer.Camera;
+//import com.jme3.renderer.ViewPort;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.Spatial.CullHint;
-import com.jme3.scene.control.AbstractControl;
+//import com.jme3.scene.control.AbstractControl;
 import com.jme3.scene.shape.Cylinder;
 import java.util.ArrayList;
+//import java.util.Collection;
 import java.util.List;
-
+//import java.util.function.Predicate;
+//import java.util.stream.Collectors;
 
 /**
  * This is the Main Class of your Game. You should only do initialization here.
  * Move your Logic into AppStates or Controls
+ *
  * @author normenhansen
  */
 public class Main extends SimpleApplication implements PhysicsCollisionListener, ActionListener {
+
     BulletAppState bulletAppState;
-    public enum WallProperty {VISIBLE, INVISIBLE}
+
+    public enum WallProperty {
+        VISIBLE, INVISIBLE
+    }
     private Sphere bullet;
     private Material mat;
     private Material mat2;
     private SphereCollisionShape bulletCollisionShape;
-    Node queNode = new Node();
+    Node queNode = new Node("Kön");
     Cylinder que;
     Geometry queGeom;
 //    Camera cam2 = new Camera(100,100);
-    enum cameraId {queCam,globalCam}
+
+    enum cameraId {
+        queCam, globalCam
+    }
     CameraManager cm;
-   
+
     private class CameraState {
+
         Quaternion camRotation;
         Vector3f camLocation;
-        
-        
-        private void setCamera(Quaternion rotation, Vector3f location){
+
+        private void setCamera(Quaternion rotation, Vector3f location) {
             camRotation = rotation;
             camLocation = location;
         }
 //        private CameraState getCamera(){
 //            return this;
 //        }
-         private Quaternion getCamRotation(){
-             return camRotation;
+
+        private Quaternion getCamRotation() {
+            return camRotation;
         }
-          private Vector3f getCamLocation(){
+
+        private Vector3f getCamLocation() {
             return camLocation;
         }
-        
+
     }
+
     private class CameraManager {
-            
+
         CameraState[] cameras;
         int currentCamera;
-            
-        CameraManager(CameraState[] cameras){
-                
+
+        CameraManager(CameraState[] cameras) {
+
             this.cameras = cameras;
             currentCamera = 0;
             cam.setRotation(cameras[currentCamera].getCamRotation());
             cam.setLocation(cameras[currentCamera].getCamLocation());
 //            setCameraState(currentCamera);
         }
-        
-        void setCameraState(int newActiveCamera){
+
+        void setCameraState(int newActiveCamera) {
 //            cameras[currentCamera].setCamera(cam.getRotation(),cam.getLocation());
             Quaternion test = cam.getRotation();
-                float w = test.getW();
-                float x = test.getX();
-                float y = test.getY();
-                float z = test.getZ();      
-                System.out.println(w + " " + x + " " + y + " " + z);
+            float w = test.getW();
+            float x = test.getX();
+            float y = test.getY();
+            float z = test.getZ();
+            System.out.println(w + " " + x + " " + y + " " + z);
             Vector3f locTest = cam.getLocation();
-                x = locTest.getX();
-                y = locTest.getY();
-                z = locTest.getZ();      
-                System.out.println(x + " " + y + " " + z);
+            x = locTest.getX();
+            y = locTest.getY();
+            z = locTest.getZ();
+            System.out.println(x + " " + y + " " + z);
             locTest = queGeom.getLocalTranslation();
-                x = locTest.getX();
-                y = locTest.getY();
-                z = locTest.getZ();      
-                System.out.println("local" + x + " " + y + " " + z);
+            x = locTest.getX();
+            y = locTest.getY();
+            z = locTest.getZ();
+            System.out.println("local" + x + " " + y + " " + z);
             cam.setRotation(cameras[newActiveCamera].getCamRotation());
             cam.setLocation(cameras[newActiveCamera].getCamLocation());
             currentCamera = newActiveCamera;
         }
-        
-        void checkCameraState(){
-            if (currentCamera == 1){
+
+        void checkCameraState() {
+            if (currentCamera == 1) {
                 Quaternion test = queNode.getWorldRotation();
                 cam.setLocation(queGeom.getWorldTranslation());
                 test.opposite(test);
@@ -126,30 +138,29 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
                 float w = test.getW();
                 float x = test.getX();
                 float y = test.getY();
-                float z = test.getZ();      
+                float z = test.getZ();
                 System.out.println(w + " " + x + " " + y + " " + z);
-            Vector3f locTest = queGeom.getWorldTranslation();
+                Vector3f locTest = queGeom.getWorldTranslation();
                 x = locTest.getX();
                 y = locTest.getY();
-                z = locTest.getZ();      
+                z = locTest.getZ();
                 System.out.println(x + " " + y + " " + z);
-            locTest = queGeom.getLocalTranslation();
+                locTest = queGeom.getLocalTranslation();
                 x = locTest.getX();
                 y = locTest.getY();
-                z = locTest.getZ();      
+                z = locTest.getZ();
                 System.out.println("local" + x + " " + y + " " + z);
 
-                cameras[currentCamera].setCamera(test,queGeom.getWorldTranslation());
+                cameras[currentCamera].setCamera(test, queGeom.getWorldTranslation());
             }
         }
-            
-    }
 
+    }
 
     public static void main(String[] args) {
         Main app = new Main();
         app.start();
-    }  
+    }
 
     private void buildPyramid(float r, float pointOffset, List<Vector3f> pos) {
         float sqrt3 = (float) Math.sqrt(3);
@@ -158,7 +169,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         float layerAt = pointOffset;
         //TipBall
         pos.add(new Vector3f(layerAt, 0, 0));
-        
+
         //Tripple
         layerAt += height;
         pos.add(new Vector3f(layerAt, 2 * width, 0)); //Top
@@ -167,15 +178,13 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         //Six
         layerAt += height;
         pos.add(new Vector3f(layerAt, 4 * width, 0)); //Top
-        pos.add(new Vector3f(layerAt,  width, r));
-        pos.add(new Vector3f(layerAt,  width, -r));
-        
-        pos.add(new Vector3f(layerAt,  -2 * width, 2 * r));
-        pos.add(new Vector3f(layerAt,  - 2 *width, 0));
-        pos.add(new Vector3f(layerAt,  - 2 * width, -2 * r));
+        pos.add(new Vector3f(layerAt, width, r));
+        pos.add(new Vector3f(layerAt, width, -r));
+
+        pos.add(new Vector3f(layerAt, -2 * width, 2 * r));
+        pos.add(new Vector3f(layerAt, - 2 * width, 0));
+        pos.add(new Vector3f(layerAt, - 2 * width, -2 * r));
     }
-    
-    
 
     @Override
     public void simpleInitApp() {
@@ -183,8 +192,6 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 //        PhysicsTestHelper.createBallShooter(this, rootNode, bulletAppState.getPhysicsSpace());
 
         //assetManager provided by JMonkey somehow..
-        
-        
         float radius = 0.5f;
         float mass = 10;
         float pointAt = 6.0f;
@@ -193,9 +200,9 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         buildPyramid(radius, pointAt, positions);
         bulletAppState = new BulletAppState();
         stateManager.attach(bulletAppState);
-        
+
         configureQue(mass);
-        Quaternion test = new Quaternion(0f,0,0f,1).add(new Quaternion(0f,0,0f,0));
+        Quaternion test = new Quaternion(0f, 0, 0f, 1).add(new Quaternion(0f, 0, 0f, 0));
         test = test.opposite(test);
         CameraState[] cameras = new CameraState[2];
         cameras[0] = new CameraState();
@@ -210,12 +217,12 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         space.setGravity(Vector3f.ZERO);
 
         Geometry geom;
-        Material  ballMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        Material ballMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         for (Vector3f ballstate : positions) {
             geom = addBall(ballMat, new Sphere(30, 30, radius), mass, ballstate, ColorRGBA.Blue);
             space.add(geom);
         }
-        Material  queMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        Material queMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         geom = addBall(queMat, new Sphere(30, 30, radius), mass, new Vector3f(0, 0f, 0), ColorRGBA.White);
         space.add(geom);
 
@@ -226,27 +233,26 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 //        wallMat.setBoolean("UseMaterialColors",true);  // Only for Lighting
 //        wallMat.setColor("Ambient", ColorRGBA.Green);   // Only for Lighting
 //        wallMat.setColor("Diffuse", ColorRGBA.Green);   // Only for Lighting        
-
         Material wallMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         wallMat.setColor("Color", ColorRGBA.Green);   // Color of Unshaded
         wallMat.setTexture("ColorMap", assetManager.loadTexture("felt_green.jpg"));// In project 'assets' directory
         wallMat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Back);
+        wallMat.getAdditionalRenderState().setFaceCullMode(RenderState.FaceCullMode.Front);
         addWall(wallMat, new Box(10.0f, 0.01f, 5.0f), new Vector3f(0, -5f, 0), new Vector3f(0, -1f, 0), CullHint.Never); //Floor
         addWall(wallMat, new Box(10.0f, 0.01f, 5.0f), new Vector3f(0, 5f, 0), new Vector3f(0, 1f, 0), CullHint.Never); //Ceiling
         addWall(wallMat, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, -5f), new Vector3f(0, 0f, -1f), CullHint.Never); //Long wall
         addWall(wallMat, new Box(0.01f, 5.0f, 5.0f), new Vector3f(-10.0f, 0.0f, 0.0f), new Vector3f(-1f, 0f, 0), CullHint.Never); //Gable
         addWall(wallMat, new Box(0.01f, 5.0f, 5.0f), new Vector3f(10.0f, 0.0f, 0.0f), new Vector3f(1f, 0f, 0), CullHint.Never); //Gable
-        
-
         addWall(wallMat, new Box(10.0f, 5.0f, 0.01f), new Vector3f(0, 0f, 5f), new Vector3f(0, 0f, 1f), CullHint.Always); //Long wall
-        
+
         space.addCollisionListener(this);
-        
+
         addLight();
     }
+
     public void addLight() {
         DirectionalLight sun = new DirectionalLight();
-        sun.setDirection(new Vector3f(-.5f,-.5f,-.5f).normalizeLocal());
+        sun.setDirection(new Vector3f(-.5f, -.5f, -.5f).normalizeLocal());
         sun.setColor(ColorRGBA.White);
 //        PointLight lamp_light = new PointLight();
 //        lamp_light.setColor(ColorRGBA.White);
@@ -255,15 +261,16 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 //        lamp_light.setPosition(new Vector3f(lamp_geo.getLocalTranslation()));
         rootNode.addLight(sun);
     }
+
     public Geometry addBall(Material material, Mesh ball, float mass, Vector3f localTranslation, ColorRGBA color) {
         Geometry geom = new Geometry("Box", ball);
         geom.setLocalTranslation(localTranslation);
         material.setColor("Color", color);
         geom.setMaterial(material);
-        
+
         RigidBodyControl bulletControl = new RigidBodyControl(mass);
         geom.addControl(bulletControl);
-        bulletControl.setSleepingThresholds(0f,0f);
+        bulletControl.setSleepingThresholds(0f, 0f);
         bulletControl.setLinearVelocity(Vector3f.ZERO); //Set initial test velocity
         bulletControl.setRestitution(1);
 //        bulletControl.setFriction(50f); //Has no effect!
@@ -271,6 +278,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 
         return geom;
     }
+
     public void addWall(Material material, Box floorBox, Vector3f localTranslation, Vector3f normal, CullHint visible) {
         MeshCollisionShape meshCollisionShape = new MeshCollisionShape(floorBox);
         RigidBodyControl rigidBodyControl = new RigidBodyControl(meshCollisionShape, 0f);
@@ -289,7 +297,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         floor.setCullHint(visible);
         floor.setUserData("Normal", normal);
         rootNode.attachChild(floor);
-        bulletAppState.getPhysicsSpace().add(floor);  
+        bulletAppState.getPhysicsSpace().add(floor);
     }
 
     private void setupKeys() {
@@ -297,7 +305,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         inputManager.addMapping("shoot2", new MouseButtonTrigger(MouseInput.BUTTON_RIGHT));
         inputManager.addListener(this, "shoot");
         inputManager.addListener(this, "shoot2");
-        
+
         inputManager.addMapping("queRight", new KeyTrigger(KeyInput.KEY_J));
         inputManager.addMapping("queLeft", new KeyTrigger(KeyInput.KEY_H));
         inputManager.addMapping("queUp", new KeyTrigger(KeyInput.KEY_U));
@@ -310,8 +318,16 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         inputManager.addListener(this, "queDown");
         inputManager.addListener(this, "camGlobal");
         inputManager.addListener(this, "camQue");
+        inputManager.addMapping("camRight", new KeyTrigger(KeyInput.KEY_D));
+        inputManager.addMapping("camLeft", new KeyTrigger(KeyInput.KEY_A));
+        inputManager.addMapping("camUp", new KeyTrigger(KeyInput.KEY_Q));
+        inputManager.addMapping("camDown", new KeyTrigger(KeyInput.KEY_Z));
+        inputManager.addListener(this, "camRight");
+        inputManager.addListener(this, "camLeft");
+        inputManager.addListener(this, "camUp");
+        inputManager.addListener(this, "camDown");
     }
-    
+
     @Override
     public void simpleUpdate(float tpf) {
         //TODO: add update code
@@ -321,12 +337,12 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
     public void simpleRender(RenderManager rm) {
         //TODO: add render code  Erling
     }
- 
-    private PhysicsSpace getPhysicsSpace(){
+
+    private PhysicsSpace getPhysicsSpace() {
         return bulletAppState.getPhysicsSpace();
     }
 
-   @Override
+    @Override
     public void collision(PhysicsCollisionEvent event) {
         if ("Box".equals(event.getNodeA().getName()) || "Box".equals(event.getNodeB().getName())) {
             if ("bullet".equals(event.getNodeA().getName()) || "bullet".equals(event.getNodeB().getName())) {
@@ -336,25 +352,26 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         }
     }
 
-@Override
+    @Override
     public void onAction(String name, boolean isPressed, float tpf) {
-       if (name.equals("shoot") && !isPressed) {
-           perform(new Geometry("bullet", bullet), mat);
+        boolean camMoved = false;
+        if (name.equals("shoot") && !isPressed) {
+            perform(new Geometry("bullet", bullet), mat);
         } else if (name.equals("shoot2") && isPressed) {
-           perform(new Geometry("bullet", bullet), mat2);
+            perform(new Geometry("bullet", bullet), mat2);
         } else if (name.equals("queRight") && isPressed) {
-            queNode.rotate(queNode.getWorldRotation().fromAngleAxis(FastMath.DEG_TO_RAD*20, new Vector3f(0,1,0)));
+            queNode.rotate(queNode.getWorldRotation().fromAngleAxis(FastMath.DEG_TO_RAD * 20, new Vector3f(0, 1, 0)));
             cm.checkCameraState();
-                   
+
         } else if (name.equals("queLeft") && isPressed) {
 
-            queNode.rotate(queNode.getWorldRotation().fromAngleAxis(-FastMath.DEG_TO_RAD*20, new Vector3f(0,1,0)));
+            queNode.rotate(queNode.getWorldRotation().fromAngleAxis(-FastMath.DEG_TO_RAD * 20, new Vector3f(0, 1, 0)));
             cm.checkCameraState();
-                    
+
         } else if (name.equals("queUp") && isPressed) {
-            queNode.rotate(queNode.getWorldRotation().fromAngleAxis(-FastMath.DEG_TO_RAD*20, new Vector3f(1,0,0)));
+            queNode.rotate(queNode.getWorldRotation().fromAngleAxis(-FastMath.DEG_TO_RAD * 20, new Vector3f(1, 0, 0)));
             cm.checkCameraState();
-   List<Spatial> children = rootNode.getChildren();
+            List<Spatial> children = rootNode.getChildren();
 //            for (Spatial child : children) {
 //                if (child.getName().equals("floor")) {
 //                    if (child.getCullHint() == CullHint.Never) {
@@ -364,15 +381,14 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 //                    }
 //                }
 //            }
-                    
+
         } else if (name.equals("queDown") && isPressed) {
-            queNode.rotate(queNode.getWorldRotation().fromAngleAxis(FastMath.DEG_TO_RAD*20, new Vector3f(1,0,0)));
+            queNode.rotate(queNode.getWorldRotation().fromAngleAxis(FastMath.DEG_TO_RAD * 20, new Vector3f(1, 0, 0)));
             cm.checkCameraState();
 
-                    
         } else if (name.equals("camGlobal") && isPressed) {
-            
-          cm.setCameraState(0);
+
+            cm.setCameraState(0);
 //        cam.setLocation(new Vector3f(10f, 0f, 40f));
 //        Quaternion test = new Quaternion(0f,0,0f,1).add(new Quaternion(0f,0,0f,0));
 //        test.opposite(test);
@@ -383,18 +399,56 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 //        float z = test.getZ();
 //        
 //        System.out.println(w + " " + x + " " + y + " " + z);
-                    
+        } else if (name.equals("camRight") && isPressed) {
+            camMoved = true;
+        } else if (name.equals("camLeft") && isPressed) {
+            camMoved = true;
+        } else if (name.equals("camUp") && isPressed) {
+            camMoved = true;
+        } else if (name.equals("camDown") && isPressed) {
+            camMoved = true;
+
         } else if (name.equals("camQue") && isPressed) {
-           cm.setCameraState(1);
+            cm.setCameraState(1);
+            camMoved = true;
+
 //           Quaternion test = queNode.getWorldRotation();
 //            cam.setLocation(queGeom.getWorldTranslation());
 //            test.opposite(test);
 //            cam.setRotation(test);
         }
-   }
+        if (camMoved) {
+            setWallVisibility();
+        }
+    }
+
+    private void setVisibility(Spatial s) {
+        Vector3f normal = ((Vector3f) (s.getUserData("Normal")));
+        Vector3f cameraPos = cam.getLocation();
+        Vector3f sum = normal.subtract(cameraPos);
+        if (sum.lengthSquared() > cameraPos.lengthSquared()) {
+            s.setCullHint(CullHint.Never);
+        } else {
+            s.setCullHint(CullHint.Always);
+        }
+    }
+
+    private void setWallVisibility() {
+//        rootNode.getChildren().stream()
+//                .filter(child -> child.getName().equals("floor"));
+        List<Spatial> children = rootNode.getChildren();
+        System.out.println(children);
+        for (Spatial child : children) {
+            if (child.getName().equals("floor")) {
+                setVisibility(child);
+            }
+        }
+    }
+
     private void print(String s) {
         System.out.println(s);
     }
+
     private void perform(Geometry geom, Material material) {
         Vector3f camLoc = cam.getLocation();
         Vector3f camDir = cam.getDirection();
@@ -407,11 +461,12 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         rootNode.attachChild(geom);
         getPhysicsSpace().add(geom);
     }
+
     private void configureQue(float mass) {
 
 //        cam.setLocation(new Vector3f(10f, 0f, 40f));
         flyCam.setMoveSpeed(25);
-        cam.setViewPort( 0.0f , 1.0f   ,   0.0f , 1.0f );
+        cam.setViewPort(0.0f, 1.0f, 0.0f, 1.0f);
         Quaternion test = queNode.getWorldRotation();
         setupKeys();
         mat = new Material(getAssetManager(), "Common/MatDefs/Misc/Unshaded.j3md");
@@ -424,23 +479,23 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         bullet = new Sphere(32, 32, 0.4f, true, false);
         bullet.setTextureMode(Sphere.TextureMode.Projected);
         bulletCollisionShape = new SphereCollisionShape(0.1f);
-        
-        que = new Cylinder(5,10,0.3f,20f, true);
+//        Cylinder que;
+        que = new Cylinder(5, 10, 0.3f, 20f, true);
         queGeom = new Geometry("Box", que);
-        queGeom.setLocalTranslation(new Vector3f(0f,0f,20f));
+        queGeom.setLocalTranslation(new Vector3f(0f, 0f, 20f));
         queGeom.addControl(new RigidBodyControl(.001f));
-            mat.setColor("Color", ColorRGBA.Green);
-            queGeom.setMaterial(mat);
+        mat.setColor("Color", ColorRGBA.Green);
+        queGeom.setMaterial(mat);
 //            RigidBodyControl bulletControl = new RigidBodyControl(mass);
 //            queGeom.addControl(bulletControl);
 //            bulletControl.setSleepingThresholds(0f,0f);
-             //Set initial test velocity
+        //Set initial test velocity
 //            bulletControl.setLinearVelocity(new Vector3f(0,0,0));
 //            bulletControl.setRestitution(1);
-            queNode.attachChild(queGeom);
-            rootNode.attachChild(queNode);
-            // activate physics
-            PhysicsSpace space = bulletAppState.getPhysicsSpace();
+        queNode.attachChild(queGeom);
+        rootNode.attachChild(queNode);
+        // activate physics
+        PhysicsSpace space = bulletAppState.getPhysicsSpace();
 //            cam2 = cam.clone();
 //        ViewPort view_2 = renderManager.createMainView("View of camera #n", cam2);
 //        view_2.setEnabled(true);
@@ -450,12 +505,12 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
 //        test.opposite(test);
 //        cam2.setRotation(test);
 //        cam2.setViewPort( 0.5f , 1.0f   ,   0.0f , 0.5f );
-        
+
 //            space.add(bulletControl);
 //            bulletControl.setGravity(new Vector3f(0,0,0));
-                  // add ourselves as collision listener
-            space.addCollisionListener(this);
+        // add ourselves as collision listener
+        space.addCollisionListener(this);
 
     }
-    
+
 }

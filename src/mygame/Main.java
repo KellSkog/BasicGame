@@ -96,9 +96,51 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
         
         void setCameraState(int newActiveCamera){
 //            cameras[currentCamera].setCamera(cam.getRotation(),cam.getLocation());
+            Quaternion test = cam.getRotation();
+                float w = test.getW();
+                float x = test.getX();
+                float y = test.getY();
+                float z = test.getZ();      
+                System.out.println(w + " " + x + " " + y + " " + z);
+            Vector3f locTest = cam.getLocation();
+                x = locTest.getX();
+                y = locTest.getY();
+                z = locTest.getZ();      
+                System.out.println(x + " " + y + " " + z);
+            locTest = queGeom.getLocalTranslation();
+                x = locTest.getX();
+                y = locTest.getY();
+                z = locTest.getZ();      
+                System.out.println("local" + x + " " + y + " " + z);
             cam.setRotation(cameras[newActiveCamera].getCamRotation());
             cam.setLocation(cameras[newActiveCamera].getCamLocation());
             currentCamera = newActiveCamera;
+        }
+        
+        void checkCameraState(){
+            if (currentCamera == 1){
+                Quaternion test = queNode.getWorldRotation();
+                cam.setLocation(queGeom.getWorldTranslation());
+                test.opposite(test);
+                cam.setRotation(test);
+                float w = test.getW();
+                float x = test.getX();
+                float y = test.getY();
+                float z = test.getZ();      
+                System.out.println(w + " " + x + " " + y + " " + z);
+            Vector3f locTest = queGeom.getWorldTranslation();
+                x = locTest.getX();
+                y = locTest.getY();
+                z = locTest.getZ();      
+                System.out.println(x + " " + y + " " + z);
+            locTest = queGeom.getLocalTranslation();
+                x = locTest.getX();
+                y = locTest.getY();
+                z = locTest.getZ();      
+                System.out.println("local" + x + " " + y + " " + z);
+
+                cameras[currentCamera].setCamera(test,queGeom.getWorldTranslation());
+            }
         }
             
     }
@@ -302,14 +344,17 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
            perform(new Geometry("bullet", bullet), mat2);
         } else if (name.equals("queRight") && isPressed) {
             queNode.rotate(queNode.getWorldRotation().fromAngleAxis(FastMath.DEG_TO_RAD*20, new Vector3f(0,1,0)));
-                    
+            cm.checkCameraState();
+                   
         } else if (name.equals("queLeft") && isPressed) {
 
             queNode.rotate(queNode.getWorldRotation().fromAngleAxis(-FastMath.DEG_TO_RAD*20, new Vector3f(0,1,0)));
+            cm.checkCameraState();
                     
         } else if (name.equals("queUp") && isPressed) {
             queNode.rotate(queNode.getWorldRotation().fromAngleAxis(-FastMath.DEG_TO_RAD*20, new Vector3f(1,0,0)));
-           List<Spatial> children = rootNode.getChildren();
+            cm.checkCameraState();
+   List<Spatial> children = rootNode.getChildren();
 //            for (Spatial child : children) {
 //                if (child.getName().equals("floor")) {
 //                    if (child.getCullHint() == CullHint.Never) {
@@ -322,6 +367,7 @@ public class Main extends SimpleApplication implements PhysicsCollisionListener,
                     
         } else if (name.equals("queDown") && isPressed) {
             queNode.rotate(queNode.getWorldRotation().fromAngleAxis(FastMath.DEG_TO_RAD*20, new Vector3f(1,0,0)));
+            cm.checkCameraState();
 
                     
         } else if (name.equals("camGlobal") && isPressed) {
